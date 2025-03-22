@@ -1,7 +1,7 @@
 import os
 import re
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
+from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 from colorama import init, Fore, Style
 
@@ -14,21 +14,29 @@ load_dotenv()
 # Get credentials from environment
 CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 
 # Verify variables loaded
-if not CLIENT_ID or not CLIENT_SECRET:
+if not CLIENT_ID or not CLIENT_SECRET or not REDIRECT_URI:
     print(
-        Fore.RED + "[ERROR] Missing SPOTIPY_CLIENT_ID or SPOTIPY_CLIENT_SECRET in .env"
+        Fore.RED
+        + "[ERROR] Missing SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET or SPOTIPY_REDIRECT_URI in .env"
     )
     exit(1)
 
-# Authentication manager
-client_credentials_manager = SpotifyClientCredentials(
-    client_id=CLIENT_ID, client_secret=CLIENT_SECRET
+# Spotify OAuth authentication (Authorization Code Flow)
+scope = "playlist-read-private playlist-read-collaborative"
+
+sp_oauth = SpotifyOAuth(
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET,
+    redirect_uri=REDIRECT_URI,
+    scope=scope,
+    show_dialog=True,  # Fuerza siempre el login para pruebas, puedes quitarlo luego
 )
 
-# Spotify client
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+# Spotify client con el token de usuario
+sp = spotipy.Spotify(auth_manager=sp_oauth)
 
 
 def extract_playlist_id(playlist_url):
