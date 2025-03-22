@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import argparse
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
@@ -32,7 +34,7 @@ sp_oauth = SpotifyOAuth(
     client_secret=CLIENT_SECRET,
     redirect_uri=REDIRECT_URI,
     scope=scope,
-    show_dialog=True,  # Fuerza siempre el login para pruebas, puedes quitarlo luego
+    show_dialog=False,  # Pon True si quieres forzar login en cada ejecución
 )
 
 # Spotify client con el token de usuario
@@ -57,7 +59,109 @@ def extract_playlist_id(playlist_url):
         exit(1)
 
 
+def fetch_playlist(playlist_id):
+    """
+    Fetch the playlist data from Spotify.
+
+    :param playlist_id: Spotify playlist ID
+    :type playlist_id: str
+    :return: Playlist data
+    :rtype: dict
+    """
+    try:
+        playlist = sp.playlist(playlist_id)
+        return playlist
+    except Exception as e:
+        print(Fore.RED + f"\n[ERROR] Failed to fetch playlist: {e}")
+        exit(1)
+
+
+def display_tracks(playlist):
+    """
+    Display tracks from the playlist in the terminal.
+
+    :param playlist: Playlist data
+    :type playlist: dict
+    """
+    os.system("cls" if os.name == "nt" else "clear")
+
+    print(Fore.MAGENTA + Style.BRIGHT + f"🎶 Playlist: {playlist['name']}\n")
+
+    tracks = playlist["tracks"]["items"]
+
+    if not tracks:
+        print(Fore.RED + "No tracks found in the playlist.")
+        return
+
+    for idx, item in enumerate(tracks, start=1):
+        track = item["track"]
+        track_name = track["name"]
+        artist_name = track["artists"][0]["name"]
+        print(Fore.WHITE + f"{idx}. {track_name} - {artist_name}")
+
+
+def export_to_json(playlist, output_file="playlist.json"):
+    """
+    Export the playlist data to a simplified JSON file.
+
+    :param playlist: Playlist data
+    :type playlist: dict
+    :param output_file: Output file name
+    :type output_file: str
+    """
+    try:
+        simplified_playlist = {"playlist": playlist["name"], "songs": []}
+
+        # Manejar paginación para obtener todas las canciones
+        tracks = playlist["tracks"]
+        while tracks:
+            for item in tracks["items"]:
+                track = item["track"]
+                song = {"name": track["name"], "artist": track["artists"][0]["name"]}
+                simplified_playlist["songs"].append(song)
+
+            # Si hay más páginas, las recorremos
+            if tracks["next"]:
+                tracks = sp.next(tracks)
+            else:
+                break
+
+        # Guardar el JSON simplificado
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(simplified_playlist, f, ensure_ascii=False, indent=4)
+
+        print(Fore.GREEN + f"\n✅ Playlist exported successfully to {output_file}")
+
+    except Exception as e:
+        print(Fore.RED + f"\n[ERROR] Failed to export playlist: {e}")
+
+
+def parse_arguments():
+    """
+    Parse command-line arguments.
+
+    :return: Parsed arguments
+    :rtype: argparse.Namespace
+    """
+    parser = argparse.ArgumentParser(
+        description="🎵 Spotify Playlist Extractor - Extract and export Spotify playlists"
+    )
+    parser.add_argument(
+        "-e", "--export", action="store_true", help="Export the playlist to JSON"
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="playlist.json",
+        help="Output JSON file name (default: playlist.json)",
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_arguments()
+
     print(Fore.CYAN + Style.BRIGHT + "🎵 Spotify Playlist Extractor 🎵\n")
 
     # Ask user for playlist URL
@@ -65,34 +169,15 @@ def main():
 
     # Extract playlist ID
     playlist_id = extract_playlist_id(playlist_url)
-
     print(Fore.GREEN + f"\n✅ Extracted Playlist ID: {playlist_id}")
 
     # Get playlist info
-    try:
-        playlist = sp.playlist(playlist_id)
-    except Exception as e:
-        print(Fore.RED + f"\n[ERROR] Failed to fetch playlist: {e}")
-        exit(1)
+    playlist = fetch_playlist(playlist_id)
 
-    # Clear the terminal before showing results
-    os.system("cls" if os.name == "nt" else "clear")
-
-    # Display playlist name and tracks
-    print(Fore.MAGENTA + Style.BRIGHT + f"🎶 Playlist: {playlist['name']}\n")
-
-    tracks = playlist["tracks"]["items"]
-
-    if not tracks:
-        print(Fore.RED + "No tracks found in the playlist.")
-        exit(0)
-
-    # Show track list
-    for idx, item in enumerate(tracks, start=1):
-        track = item["track"]
-        track_name = track["name"]
-        artist_name = track["artists"][0]["name"]
-        print(Fore.WHITE + f"{idx}. {track_name} - {artist_name}")
+    if args.export:
+        export_to_json(playlist, args.output)
+    else:
+        display_tracks(playlist)
 
 
 if __name__ == "__main__":

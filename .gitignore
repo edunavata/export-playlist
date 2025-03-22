@@ -8,3 +8,6 @@ __pycache__/
 
 # Archivos del sistema
 .DS_Store
+
+# Data
+*json
