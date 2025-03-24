@@ -20,18 +20,30 @@ Extract and list songs from any Spotify playlist (public, private, or collaborat
     ```bash
     git clone https://github.com/edunavata/export-playlist.git
     cd export-playlist
+    ```
+
+2. (Optional) Create and activate a virtual environment:
+
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate   # On Windows: venv\Scripts\activate
+    ```
+
+3. Install the required Python packages:
+
+    ```bash
     pip install -r requirements.txt
     ```
 
-2. Create a Spotify App on the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/).
+4. Create a Spotify App on the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/).
 
-3. Set the Redirect URI:
+5. Set the Redirect URI in your Spotify App:
 
     ```
     http://localhost:8888/callback
     ```
 
-4. Create a `.env` file in the project root with the following variables:
+6. Create a `.env` file in the project root with your credentials:
 
     ```
     SPOTIPY_CLIENT_ID=your_client_id
@@ -39,7 +51,7 @@ Extract and list songs from any Spotify playlist (public, private, or collaborat
     SPOTIPY_REDIRECT_URI=http://localhost:8888/callback
     ```
 
-    Or copy the provided `.env.demo` and fill in your credentials.
+    Or copy the provided `.env.demo` and fill in your values.
 
 ## Usage
 
